@@ -1,0 +1,89 @@
+---
+title: "VectorByte Workshop -- EEID 2025"
+author: "Leonardo Souto Ferreira"
+date: today
+format: html
+toc: false
+execute:
+  message: FALSE
+  warning: FALSE
+  echo: TRUE
+  eval: TRUE
+geometry:
+  - margin=2cm
+smooth-scroll: true
+---
+
+```{r}
+source("challenge_functions.R")
+```
+
+## Loading data
+```{r}
+df <- read_csv("../data/dengueForecasting.csv")
+train_set <- df |>
+  filter(uf == "BA") |>
+  filter(epiweek <= 202225)
+
+head(df)
+```
+
+```{r}
+```
+
+
+```{r}
+# result <- forward_selection(train_set, c("minTemp", "maxPressure", "medRH", "maxPrecip", "iod", "maxRH", "meanRainyDays", "meanThermalRange", "population"), max_predictors = 9)
+best_predictors <- c("population", "iod", "medRH", "minTemp", "maxPressure")
+
+# best_predictors <- result[[length(result)]]$selected
+
+best_model <- train_model(train_set, best_predictors)
+
+print(best_model)
+
+predictions <- predict_model(best_model, df |>
+  filter(uf == "BA"))
+
+predictions <- predictions$prediction
+
+original_data <- df |>
+  filter(uf == "BA")
+
+print(predictions)
+
+write_csv(predictions, "forecast_BA.csv")
+
+```
+
+
+
+
+
+
+
+
+
+```{r, eval = TRUE}
+#| fig-height: 6
+predictions |> ggplot(aes(x = x, y = y)) +
+  # facet_wrap(~location, scales = "free_y", ncol = 1) +
+  geom_line(color = "red") +
+  geom_ribbon(aes(ymin = q1, ymax = q2), alpha = 0.3) +
+  geom_point(aes(x = date, y = cases), data = original_data) +
+  # geom_vline(xintercept = cutoff, linetype = "dashed") +
+  # scale_color_manual(values = c("black", "blue")) +
+  theme_bw(12) +
+  labs(x = "Time", y = "Counts")
+
+ggsave("test.png")
+
+# original_data |>
+#   select(location, date, medTemp, enso) |>
+#   pivot_longer(-c(location, date)) |>
+#   ggplot(aes(x = date, y = value, color = name)) +
+#   facet_grid(cols = vars(location), rows = vars(name), scales = "free_y") +
+#   geom_line() +
+#   theme_bw(12)
+
+```
